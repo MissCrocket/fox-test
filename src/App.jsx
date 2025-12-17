@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 // --- IKONY SVG ---
-// POPRAWKA: Użycie {...props} (spread operator) zamiast błędnego .props
 const Icon = ({ children, className, ...props }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
 );
 
-// Wszystkie ikony poniżej mają poprawiony spread {...props}
 const Check = (props) => <Icon {...props}><polyline points="20 6 9 17 4 12"/></Icon>;
 const ChevronRight = (props) => <Icon {...props}><polyline points="9 18 15 12 9 6"/></Icon>;
 const ChevronLeft = (props) => <Icon {...props}><polyline points="15 18 9 12 15 6"/></Icon>;
@@ -52,7 +50,7 @@ const INITIAL_FORM_STATE = {
   email: '', phone: '', fleetSize: '', fleetType: 'trucks',
   iban: '', ibanSkipped: false,
   consent: false,
-  _gotcha: '' // Pole honeypot
+  _gotcha: ''
 };
 
 // --- WALIDATORY ---
@@ -107,7 +105,6 @@ const StepWrapper = ({ children }) => (
   <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">{children}</div>
 );
 
-// POPRAWKA: InputField używa teraz {...props}
 const InputField = ({ label, error, icon: Icon, autoComplete, required, onBlur, inputMode, pattern, ...props }) => (
   <div className="mb-5 group">
     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1 font-body">
@@ -296,14 +293,16 @@ export default function App() {
   };
 
   const handleFetchGUS = async () => {
+    // 1. Walidacja formatu i sumy kontrolnej PRZED wysłaniem żądania
     if (formData.nip.length !== 10) {
-      setErrors(prev => ({ ...prev, nip: 'NIP musi mieć 10 cyfr' }));
+      setErrors(prev => ({ ...prev, nip: 'NIP musi składać się z 10 cyfr' }));
       return false;
     }
     if (!isValidNIP(formData.nip)) {
-      setErrors(prev => ({ ...prev, nip: 'Nieprawidłowy numer NIP' }));
+      setErrors(prev => ({ ...prev, nip: 'Nieprawidłowy numer NIP (błędna suma kontrolna)' }));
       return false;
     }
+
     setErrors(prev => { const e = { ...prev }; delete e.nip; delete e.companyName; return e; });
     setLoading(true);
 
@@ -350,9 +349,21 @@ export default function App() {
       }
     }
     if (currentStep === 2) {
-      if (formData.nip.length !== 10) { newErrors.nip = 'NIP musi składać się z 10 cyfr'; isValid = false; }
-      else if (!isValidNIP(formData.nip)) { newErrors.nip = 'Numer NIP jest nieprawidłowy'; isValid = false; }
-      if (!formData.companyName) { newErrors.companyName = 'Kliknij pomarańczową strzałkę, aby pobrać dane firmy'; isValid = false; }
+      // Walidacja NIP jest wstępnie robiona przy strzale do API, ale tutaj też zabezpieczamy
+      if (formData.nip.length !== 10) { 
+        newErrors.nip = 'NIP musi składać się z 10 cyfr'; 
+        isValid = false; 
+      } else if (!isValidNIP(formData.nip)) { 
+        newErrors.nip = 'Nieprawidłowy numer NIP'; 
+        isValid = false; 
+      }
+      
+      // ZMIANA: Usunięto komunikat "Kliknij pomarańczową strzałkę".
+      // Sprawdzamy tylko, czy dane są, żeby zablokować przejście,
+      // ale logikę pobierania obsłuży teraz przycisk "Dalej" (funkcja nextStep).
+      if (!formData.companyName) { 
+        isValid = false; 
+      }
     }
     if (currentStep === 3) {
       if (!formData.legalForm) { newErrors.legalForm = 'Wybierz formę prawną'; isValid = false; }
@@ -382,12 +393,26 @@ export default function App() {
   };
 
   const nextStep = async () => {
+    // KROK 2: Logika "Leniwego" użytkownika (kliknął Dalej bez pobierania)
     if (step === 2) {
       if (formData.nip && !formData.companyName) {
+        // Próbujemy pobrać dane automatycznie
         const success = await handleFetchGUS();
-        if (!success) return;
+        
+        if (success) {
+          // FIX: Skoro pobieranie się udało, idziemy od razu dalej.
+          // Pomijamy validateStep(), bo stan Reacta jeszcze się nie odświeżył 
+          // i walidator "myślałby", że pola firmy są nadal puste.
+          setStep(p => p + 1);
+          return;
+        } else {
+          // Jeśli pobieranie się nie udało, handleFetchGUS ustawiło już błędy.
+          // Zostajemy w tym kroku.
+          return; 
+        }
       }
     }
+
     if (validateStep(step) && !formData.countries.None) {
       setStep(p => p + 1);
     }
@@ -539,6 +564,7 @@ export default function App() {
                           <div className="p-6"><h3 className="font-bold text-[#01152F] text-lg mb-1 font-heading">{formData.companyName}</h3><p className="text-slate-500 font-body">{formData.seatAddress}, {formData.seatPostal} {formData.seatCity}</p></div>
                         </div>
                       )}
+                      <div className="text-sm text-slate-400 font-body">Kliknij pomarańczową strzałkę, aby pobrać dane firmy</div>
                       {errors.companyName && <p className="text-red-500 font-bold mt-4 font-body">{errors.companyName}</p>}
                     </div>
                   </StepWrapper>
