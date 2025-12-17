@@ -131,34 +131,36 @@ export async function handler(event) {
     const legalFormDisplay = LEGAL_FORMS[data.legalForm] || data.legalForm;
     const fleetTypeDisplay = FLEET_TYPES[data.fleet.type] || data.fleet.type;
 
-    // --- PRZYGOTOWANIE TREŚCI ---
-
-    // Wspólnicy (dla SC)
-    const partnersHtml = data.partners && data.partners.length > 0
-      ? `
-        <div style="margin-top: 10px; background-color: #f8fafc; padding: 12px; border-radius: 6px;">
-          <strong style="color: #64748b; font-size: 13px;">Wspólnicy:</strong>
-          <ul style="margin: 5px 0 0 0; padding-left: 20px; color: #334155; font-size: 14px;">
-            ${data.partners.map(p => `<li>${escapeHtml(p.name)} (PESEL: <strong>${escapeHtml(p.pesel)}</strong>)</li>`).join('')}
-          </ul>
-        </div>
-      `
-      : '';
-
-    // Stylizacja IBAN - zmieniona czcionka na systemową, usunięto monospace
-    const ibanDisplay = data.ibanSkipped 
-      ? '<span style="color: #d97706; font-weight: bold; background: #fffbeb; padding: 4px 8px; border-radius: 4px; font-size: 12px;">⚠️ Do uzupełnienia później</span>' 
-      : (data.iban ? `<span style="font-size: 16px; font-weight: 700; color: #0f172a; letter-spacing: 1px;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');
-
     // --- KONFIGURACJA SZABLONU ---
 
     const logoUrl = 'https://static.wixstatic.com/media/3912d2_cef00b6eb96343d586909632d2e7d630~mv2.png';
 
-    // Style CSS inline - zmniejszone paddingi i marginesy
+    // Style CSS inline
     const tableRowStyle = 'border-bottom: 1px solid #f1f5f9;';
     const labelCellStyle = 'padding: 8px 10px 8px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 140px; vertical-align: top; text-transform: uppercase; letter-spacing: 0.5px;';
     const valueCellStyle = 'padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 500; vertical-align: top; line-height: 1.5;';
     const sectionHeaderStyle = 'color: #E86C3F; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 25px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #E86C3F; display: inline-block;';
+
+    // --- PRZYGOTOWANIE TREŚCI ZMIENNYCH ---
+
+    // Generowanie wiersza dla wspólników (jako część tabeli, a nie osobny div)
+    const partnersRow = data.partners && data.partners.length > 0
+      ? `
+        <tr style="${tableRowStyle}">
+          <td style="${labelCellStyle}">Wspólnicy</td>
+          <td style="${valueCellStyle}">
+            <ul style="margin: 0; padding-left: 0; list-style-type: none;">
+              ${data.partners.map(p => `<li style="margin-bottom: 4px;">${escapeHtml(p.name)} <span style="color: #64748b; font-size: 13px;">(PESEL: ${escapeHtml(p.pesel)})</span></li>`).join('')}
+            </ul>
+          </td>
+        </tr>
+      `
+      : '';
+
+    // Stylizacja IBAN
+    const ibanDisplay = data.ibanSkipped 
+      ? '<span style="color: #d97706; font-weight: bold; background: #fffbeb; padding: 4px 8px; border-radius: 4px; font-size: 12px;">⚠️ Do uzupełnienia później</span>' 
+      : (data.iban ? `<span style="font-size: 16px; font-weight: 700; color: #0f172a; letter-spacing: 1px;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');
 
     const mailOptions = {
       from: `"Formularz Fox Up" <${process.env.SMTP_USER}>`,
@@ -203,11 +205,13 @@ export async function handler(event) {
                 <tr style="${tableRowStyle}"><td style="${labelCellStyle}">Nazwa firmy</td><td style="${valueCellStyle}">${escapeHtml(data.companyName)}</td></tr>
                 <tr style="${tableRowStyle}"><td style="${labelCellStyle}">NIP</td><td style="${valueCellStyle}">${escapeHtml(data.nip)}</td></tr>
                 <tr style="${tableRowStyle}"><td style="${labelCellStyle}">Forma prawna</td><td style="${valueCellStyle}">${escapeHtml(legalFormDisplay)}</td></tr>
+                
                 ${data.ownerPesel ? `<tr style="${tableRowStyle}"><td style="${labelCellStyle}">PESEL Właściciela</td><td style="${valueCellStyle}">${escapeHtml(data.ownerPesel)}</td></tr>` : ''}
+                
                 ${data.representation ? `<tr style="${tableRowStyle}"><td style="${labelCellStyle}">Reprezentacja</td><td style="${valueCellStyle}">${escapeHtml(data.representation)}</td></tr>` : ''}
+                
+                ${partnersRow}
               </table>
-
-              ${partnersHtml}
 
               <div style="${sectionHeaderStyle}">Adresy</div>
               <table>
