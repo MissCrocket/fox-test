@@ -299,7 +299,7 @@ export default function App() {
       return false;
     }
     if (!isValidNIP(formData.nip)) {
-      setErrors(prev => ({ ...prev, nip: 'Nieprawidłowy numer NIP (błędna suma kontrolna)' }));
+      setErrors(prev => ({ ...prev, nip: 'Nieprawidłowy numer NIP' }));
       return false;
     }
 
@@ -359,8 +359,6 @@ export default function App() {
       }
       
       // ZMIANA: Usunięto komunikat "Kliknij pomarańczową strzałkę".
-      // Sprawdzamy tylko, czy dane są, żeby zablokować przejście,
-      // ale logikę pobierania obsłuży teraz przycisk "Dalej" (funkcja nextStep).
       if (!formData.companyName) { 
         isValid = false; 
       }
@@ -564,7 +562,7 @@ export default function App() {
                           <div className="p-6"><h3 className="font-bold text-[#01152F] text-lg mb-1 font-heading">{formData.companyName}</h3><p className="text-slate-500 font-body">{formData.seatAddress}, {formData.seatPostal} {formData.seatCity}</p></div>
                         </div>
                       )}
-                      <div className="text-sm text-slate-400 font-body">Kliknij pomarańczową strzałkę, aby pobrać dane firmy</div>
+                      {/* ZMIANA: Usunięto tekst zachęty do kliknięcia */}
                       {errors.companyName && <p className="text-red-500 font-bold mt-4 font-body">{errors.companyName}</p>}
                     </div>
                   </StepWrapper>
