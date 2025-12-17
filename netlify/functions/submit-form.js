@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = [
   'https://twoja-domena-na-wix.com'
 ];
 
-// 2. Funkcja sprawdzająca Origin (z obsługą Deploy Previews)
+// 2. Funkcja sprawdzająca Origin
 const isAllowedOrigin = (origin) => {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
@@ -17,7 +17,7 @@ const isAllowedOrigin = (origin) => {
   return previewRegex.test(origin);
 };
 
-// 3. Schema walidacji (Zod)
+// 3. Schema walidacji
 const formSchema = z.object({
   nip: z.string().min(10),
   companyName: z.string().min(1),
@@ -69,7 +69,6 @@ const formSchema = z.object({
   }
 });
 
-// Helper do bezpiecznego HTML (zamiast maskowania)
 const escapeHtml = (text) => {
   if (!text) return "";
   return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -79,7 +78,6 @@ export async function handler(event) {
   const rawOrigin = event.headers.origin || event.headers.Origin || "";
   const cleanOrigin = rawOrigin.replace(/\/$/, "");
   
-  // CORS check
   const isAllowed = isAllowedOrigin(cleanOrigin);
 
   if (event.httpMethod !== "OPTIONS" && !isAllowed) {
@@ -102,7 +100,6 @@ export async function handler(event) {
   try {
     const rawData = JSON.parse(event.body);
     
-    // Walidacja
     const result = formSchema.safeParse(rawData);
     if (!result.success) {
       console.error("Validation error:", JSON.stringify(result.error.format(), null, 2));
@@ -110,7 +107,6 @@ export async function handler(event) {
     }
     const data = result.data;
 
-    // Konfiguracja SMTP
     const smtpPort = Number(process.env.SMTP_PORT) || 465;
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -119,7 +115,24 @@ export async function handler(event) {
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
 
-    // Budowanie HTML z PEŁNYMI DANYMI
+    // --- TŁUMACZENIA I FORMATOWANIE ---
+    
+    const LEGAL_FORMS = {
+      jdg: 'Jednoosobowa Działalność Gospodarcza',
+      sc: 'Spółka Cywilna',
+      other: 'Spółka Prawa Handlowego' // Tutaj zmieniliśmy "other" na ładną nazwę
+    };
+
+    const FLEET_TYPES = {
+      trucks: 'Ciężarowe', // Tutaj zmieniliśmy "trucks"
+      bus: 'Autokary'
+    };
+
+    const legalFormDisplay = LEGAL_FORMS[data.legalForm] || data.legalForm;
+    const fleetTypeDisplay = FLEET_TYPES[data.fleet.type] || data.fleet.type;
+
+    // --- KONIEC TŁUMACZEŃ ---
+
     const partnersHtml = data.partners && data.partners.length > 0
       ? '<h3>Wspólnicy:</h3><ul>' + data.partners.map(p => `<li>${escapeHtml(p.name)} (PESEL: <strong>${escapeHtml(p.pesel)}</strong>)</li>`).join('') + '</ul>'
       : '';
@@ -143,7 +156,7 @@ export async function handler(event) {
           <h3>Dane firmy:</h3>
           <p><strong>Nazwa:</strong> ${escapeHtml(data.companyName)}</p>
           <p><strong>NIP:</strong> ${escapeHtml(data.nip)}</p>
-          <p><strong>Forma:</strong> ${escapeHtml(data.legalForm)}</p>
+          <p><strong>Forma:</strong> ${escapeHtml(legalFormDisplay)}</p> 
           <p><strong>PESEL Właściciela:</strong> ${data.ownerPesel ? `<strong>${escapeHtml(data.ownerPesel)}</strong>` : 'Nie dotyczy'}</p>
           ${data.representation ? `<p><strong>Reprezentacja:</strong> ${escapeHtml(data.representation)}</p>` : ''}
           ${partnersHtml}
@@ -157,7 +170,7 @@ export async function handler(event) {
           <p>Telefon: ${escapeHtml(data.contact.phone)}</p>
           
           <h3>Inne:</h3>
-          <p>Flota: ${data.fleet.size} (${escapeHtml(data.fleet.type)})</p>
+          <p>Flota: ${data.fleet.size} (${escapeHtml(fleetTypeDisplay)})</p>
           <p>IBAN: ${ibanDisplay}</p>
           <p>Kraje: ${data.countries.map(c => escapeHtml(c)).join(', ')}</p>
           
