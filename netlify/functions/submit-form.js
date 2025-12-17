@@ -5,7 +5,7 @@ import { z } from 'zod';
 // 1. Whitelist domen
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
-  'https://roaring-custard-43066a.netlify.app',
+  'https://effervescent-florentine-c07f90.netlify.app',
   'https://twoja-domena-na-wix.com'
 ];
 
@@ -13,7 +13,7 @@ const ALLOWED_ORIGINS = [
 const isAllowedOrigin = (origin) => {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
-  const previewRegex = /^https:\/\/deploy-preview-\d+--roaring-custard-43066a\.netlify\.app$/;
+  const previewRegex = /^https:\/\/deploy-preview-\d+--effervescent-florentine-c07f90\.netlify\.app$/;
   return previewRegex.test(origin);
 };
 
@@ -87,7 +87,7 @@ export async function handler(event) {
     return { statusCode: 403, body: JSON.stringify({ error: "Forbidden Origin" }) };
   }
 
-  const allowOriginHeader = isAllowed ? cleanOrigin : 'https://roaring-custard-43066a.netlify.app';
+  const allowOriginHeader = isAllowed ? cleanOrigin : 'https://effervescent-florentine-c07f90.netlify.app';
 
   const headers = {
     "Access-Control-Allow-Origin": allowOriginHeader,

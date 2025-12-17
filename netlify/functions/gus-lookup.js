@@ -6,7 +6,7 @@ const GUS_URL = "https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.s
 // Konfiguracja CORS
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
-  'https://roaring-custard-43066a.netlify.app',
+  'https://effervescent-florentine-c07f90.netlify.app',
   'https://twoja-domena-na-wix.com'
 ];
 
