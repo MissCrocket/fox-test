@@ -150,7 +150,7 @@ export async function handler(event) {
       ? '<span style="color: #d97706; font-weight: bold; background: #fffbeb; padding: 2px 6px; border-radius: 4px;">⚠️ Do uzupełnienia później</span>' 
       : (data.iban ? `<span style="font-family: monospace; font-size: 14px; font-weight: bold; color: #01152F;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');
 
-    const logoUrl = 'https://static.wixstatic.com/media/3912d2_bf127344204e4cd2990077917aaa5f1c~mv2.png';
+    const logoUrl = 'https://static.wixstatic.com/media/3912d2_cef00b6eb96343d586909632d2e7d630~mv2.png';
 
     const mailOptions = {
       from: `"Formularz Fox Up" <${process.env.SMTP_USER}>`,
@@ -209,7 +209,7 @@ export async function handler(event) {
                 <div style="color: #334155;">${escapeHtml(data.correspondence.postalCode)} ${escapeHtml(data.correspondence.city)}</div>
               </div>
 
-              <div class="section-title">Szczegóły operacyjne</div>
+              <div class="section-title">Szczegóły</div>
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td width="50%" valign="top" style="padding-right: 10px;">
