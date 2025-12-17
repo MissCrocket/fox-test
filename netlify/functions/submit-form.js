@@ -50,7 +50,8 @@ const formSchema = z.object({
   iban: z.string().nullable().optional(),
   ibanSkipped: z.boolean(),
   consent: z.boolean().refine(val => val === true, { message: "Zgoda jest wymagana" }),
-  submittedAt: z.string()
+  // ZMIANA: Honeypot (musi być pusty lub null)
+  _gotcha: z.string().optional().nullable()
 }).superRefine((data, ctx) => {
   if (data.legalForm === 'jdg') {
     if (!data.ownerPesel || data.ownerPesel.length !== 11) {
@@ -99,13 +100,28 @@ export async function handler(event) {
 
   try {
     const rawData = JSON.parse(event.body);
+
+    // --- ZMIANA: HONEYPOT CHECK ---
+    if (rawData._gotcha) {
+        // Logowanie IP z fallbackiem (dla Netlify)
+        const ip = event.headers['client-ip'] || event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || 'unknown';
+        console.log(`Spam detected from IP: ${ip}`);
+        
+        // Zwracamy 200 OK, żeby bot myślał, że się udało
+        return { statusCode: 200, headers, body: JSON.stringify({ message: 'Wysłano' }) };
+    }
     
     const result = formSchema.safeParse(rawData);
     if (!result.success) {
       console.error("Validation error:", JSON.stringify(result.error.format(), null, 2));
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Błąd walidacji", details: result.error.issues }) };
     }
-    const data = result.data;
+    
+    // --- ZMIANA: GENEROWANIE DATY NA SERWERZE ---
+    const data = {
+        ...result.data,
+        submittedAt: new Date().toISOString()
+    };
 
     const smtpPort = Number(process.env.SMTP_PORT) || 465;
     const transporter = nodemailer.createTransport({
@@ -143,7 +159,6 @@ export async function handler(event) {
 
     // --- PRZYGOTOWANIE TREŚCI ZMIENNYCH ---
 
-    // Generowanie wiersza dla wspólników (jako część tabeli, a nie osobny div)
     const partnersRow = data.partners && data.partners.length > 0
       ? `
         <tr style="${tableRowStyle}">
@@ -157,7 +172,6 @@ export async function handler(event) {
       `
       : '';
 
-    // Stylizacja IBAN
     const ibanDisplay = data.ibanSkipped 
       ? '<span style="color: #d97706; font-weight: bold; background: #fffbeb; padding: 4px 8px; border-radius: 4px; font-size: 12px;">⚠️ Do uzupełnienia później</span>' 
       : (data.iban ? `<span style="font-size: 16px; font-weight: 700; color: #0f172a; letter-spacing: 1px;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');

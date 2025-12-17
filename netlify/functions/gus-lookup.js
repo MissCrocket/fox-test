@@ -3,12 +3,21 @@ import { decode } from 'he';
 
 const GUS_URL = "https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc";
 
-// Konfiguracja CORS
+// 1. Whitelist domen
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'https://effervescent-florentine-c07f90.netlify.app',
   'https://twoja-domena-na-wix.com'
 ];
+
+// 2. Funkcja sprawdzająca Origin (z obsługą deploy-preview)
+const isAllowedOrigin = (origin) => {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Regex dla deploy preview na Netlify
+  const previewRegex = /^https:\/\/deploy-preview-\d+--effervescent-florentine-c07f90\.netlify\.app$/;
+  return previewRegex.test(origin);
+};
 
 // Parser tylko do czystych danych (krok końcowy)
 const parser = new XMLParser({
@@ -89,16 +98,21 @@ const sendSoap = async (action, body, sid = null) => {
 };
 
 export async function handler(event) {
-  const origin = event.headers.origin || event.headers.Origin || "";
-  const cleanOrigin = origin.replace(/\/$/, "");
+  const rawOrigin = event.headers.origin || event.headers.Origin || "";
+  const cleanOrigin = rawOrigin.replace(/\/$/, "");
 
-  // Twarda blokada CORS
-  if (event.httpMethod !== "OPTIONS" && !ALLOWED_ORIGINS.includes(cleanOrigin)) {
+  const isAllowed = isAllowedOrigin(cleanOrigin);
+
+  // Blokada CORS
+  if (event.httpMethod !== "OPTIONS" && !isAllowed) {
+    console.error(`Blocked Origin: ${cleanOrigin}`);
     return { statusCode: 403, body: JSON.stringify({ error: "Forbidden Origin" }) };
   }
 
+  const allowOriginHeader = isAllowed ? cleanOrigin : 'https://effervescent-florentine-c07f90.netlify.app';
+
   const headers = {
-    "Access-Control-Allow-Origin": cleanOrigin,
+    "Access-Control-Allow-Origin": allowOriginHeader,
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json"

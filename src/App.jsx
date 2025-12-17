@@ -42,7 +42,8 @@ const INITIAL_FORM_STATE = {
   sameAddress: 'yes', corrAddress: '', corrPostal: '', corrCity: '',
   email: '', phone: '', fleetSize: '', fleetType: 'trucks',
   iban: '', ibanSkipped: false,
-  consent: false
+  consent: false,
+  _gotcha: '' // Pole honeypot
 };
 
 // --- WALIDATORY ---
@@ -405,7 +406,8 @@ export default function App() {
         iban: formData.ibanSkipped ? null : cleanedIban,
         ibanSkipped: formData.ibanSkipped,
         consent: formData.consent, 
-        submittedAt: new Date().toISOString()
+        // ZMIANA: Usunięto submittedAt, dodano _gotcha
+        _gotcha: formData._gotcha
       };
 
       try {
@@ -467,6 +469,21 @@ export default function App() {
               <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-[#E86C3F] transition-all duration-500" style={{ width: `${((step-1)/6)*100}%` }}></div></div>
             </div>
             <div className="flex-1 flex flex-col relative">
+              {/* --- ZMIANA: HONEYPOT RENDEROWANY ZAWSZE (GLOBALNIE W UI) --- */}
+              {/* Jest niewidoczny dla użytkownika (opacity:0, left: -9999px), ale widoczny dla bota (brak display:none) */}
+              <div style={{ opacity: 0, position: 'absolute', left: '-9999px', top: 0 }}>
+                  <label htmlFor="_gotcha">Nie wypełniaj tego pola, jeśli jesteś człowiekiem</label>
+                  <input 
+                      type="text" 
+                      id="_gotcha" 
+                      name="_gotcha" 
+                      value={formData._gotcha} 
+                      onChange={handleChange} 
+                      tabIndex="-1" 
+                      autoComplete="off"
+                  />
+              </div>
+
               <div className="flex-1 p-6 md:p-10 lg:p-12 overflow-y-auto">
                 {step === 1 && (
                   <StepWrapper>
@@ -639,6 +656,7 @@ export default function App() {
                 {step === 7 && (
                   <StepWrapper>
                     <h2 className="text-3xl font-bold text-[#01152F] mb-6 font-heading">Podsumowanie</h2>
+                    
                     <div className="bg-white border-2 border-slate-100 rounded-2xl p-6 mb-8 shadow-sm">
                       <div className="border-b border-slate-100 pb-4 mb-4">
                           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 font-heading">Dane Firmy</h4>
