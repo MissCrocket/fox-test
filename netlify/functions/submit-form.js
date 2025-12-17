@@ -120,11 +120,11 @@ export async function handler(event) {
     const LEGAL_FORMS = {
       jdg: 'Jednoosobowa Działalność Gospodarcza',
       sc: 'Spółka Cywilna',
-      other: 'Spółka Prawa Handlowego' // Tutaj zmieniliśmy "other" na ładną nazwę
+      other: 'Spółka Prawa Handlowego'
     };
 
     const FLEET_TYPES = {
-      trucks: 'Ciężarowe', // Tutaj zmieniliśmy "trucks"
+      trucks: 'Ciężarowe',
       bus: 'Autokary'
     };
 
@@ -133,13 +133,24 @@ export async function handler(event) {
 
     // --- KONIEC TŁUMACZEŃ ---
 
+    // Przygotowanie sekcji wspólników
     const partnersHtml = data.partners && data.partners.length > 0
-      ? '<h3>Wspólnicy:</h3><ul>' + data.partners.map(p => `<li>${escapeHtml(p.name)} (PESEL: <strong>${escapeHtml(p.pesel)}</strong>)</li>`).join('') + '</ul>'
+      ? `
+        <div style="margin-top: 15px; padding: 15px; background-color: #f8fafc; border-radius: 8px;">
+          <strong style="color: #01152F;">Wspólnicy:</strong>
+          <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #475569;">
+            ${data.partners.map(p => `<li>${escapeHtml(p.name)} (PESEL: <strong>${escapeHtml(p.pesel)}</strong>)</li>`).join('')}
+          </ul>
+        </div>
+      `
       : '';
 
+    // Stylizacja IBAN
     const ibanDisplay = data.ibanSkipped 
-      ? '<span style="color:orange">Do uzupełnienia później</span>' 
-      : (data.iban ? `<strong>${escapeHtml(data.iban)}</strong>` : '<span style="color:red">Brak</span>');
+      ? '<span style="color: #d97706; font-weight: bold; background: #fffbeb; padding: 2px 6px; border-radius: 4px;">⚠️ Do uzupełnienia później</span>' 
+      : (data.iban ? `<span style="font-family: monospace; font-size: 14px; font-weight: bold; color: #01152F;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');
+
+    const logoUrl = 'https://static.wixstatic.com/media/3912d2_bf127344204e4cd2990077917aaa5f1c~mv2.png';
 
     const mailOptions = {
       from: `"Formularz Fox Up" <${process.env.SMTP_USER}>`,
@@ -147,36 +158,85 @@ export async function handler(event) {
       replyTo: data.contact.email,
       subject: `Nowe zgłoszenie: ${escapeHtml(data.companyName)}`,
       html: `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #E86C3F;">Nowe zgłoszenie rejestracyjne</h2>
-          <p style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; font-size: 14px; border: 1px solid #ffeeba;">
-            ⚠️ <strong>Uwaga:</strong> Wiadomość zawiera dane osobowe (PESEL, IBAN). Chroń dostęp do tej skrzynki pocztowej.
-          </p>
-          <hr />
-          <h3>Dane firmy:</h3>
-          <p><strong>Nazwa:</strong> ${escapeHtml(data.companyName)}</p>
-          <p><strong>NIP:</strong> ${escapeHtml(data.nip)}</p>
-          <p><strong>Forma:</strong> ${escapeHtml(legalFormDisplay)}</p> 
-          <p><strong>PESEL Właściciela:</strong> ${data.ownerPesel ? `<strong>${escapeHtml(data.ownerPesel)}</strong>` : 'Nie dotyczy'}</p>
-          ${data.representation ? `<p><strong>Reprezentacja:</strong> ${escapeHtml(data.representation)}</p>` : ''}
-          ${partnersHtml}
-          
-          <h3>Adresy:</h3>
-          <p><strong>Siedziba:</strong> ${escapeHtml(data.seat.address)}, ${escapeHtml(data.seat.postalCode)} ${escapeHtml(data.seat.city)}</p>
-          <p><strong>Korespondencja:</strong> ${escapeHtml(data.correspondence.address)}, ${escapeHtml(data.correspondence.postalCode)} ${escapeHtml(data.correspondence.city)}</p>
-          
-          <h3>Kontakt:</h3>
-          <p>Email: <a href="mailto:${escapeHtml(data.contact.email)}">${escapeHtml(data.contact.email)}</a></p>
-          <p>Telefon: ${escapeHtml(data.contact.phone)}</p>
-          
-          <h3>Inne:</h3>
-          <p>Flota: ${data.fleet.size} (${escapeHtml(fleetTypeDisplay)})</p>
-          <p>IBAN: ${ibanDisplay}</p>
-          <p>Kraje: ${data.countries.map(c => escapeHtml(c)).join(', ')}</p>
-          
-          <hr />
-          <p style="font-size: 12px; color: #888;">Zgłoszenie wysłano: ${new Date(data.submittedAt).toLocaleString('pl-PL')}</p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #F3F6F8; }
+            .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px; margin-bottom: 20px; }
+            .header { background-color: #01152F; padding: 30px; text-align: center; }
+            .content { padding: 40px; color: #334155; }
+            .section-title { color: #E86C3F; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+            .data-row { margin-bottom: 8px; font-size: 15px; line-height: 1.5; }
+            .label { color: #64748b; font-size: 13px; font-weight: 600; min-width: 120px; display: inline-block; }
+            .value { color: #0f172a; font-weight: 500; }
+            .alert { background-color: #fff7ed; border-left: 4px solid #E86C3F; color: #9a3412; padding: 15px; border-radius: 4px; font-size: 13px; margin-bottom: 20px; }
+            .footer { background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+            a { color: #E86C3F; text-decoration: none; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+               <img src="${logoUrl}" alt="FOX UP" height="50" style="display: block; margin: 0 auto; height: 50px; width: auto; border: 0;">
+            </div>
+
+            <div class="content">
+              <h2 style="margin: 0 0 20px 0; color: #01152F; font-size: 24px;">Nowe zgłoszenie rejestracyjne</h2>
+              
+              <div class="alert">
+                <strong>🔒 Bezpieczeństwo danych:</strong> Ta wiadomość zawiera wrażliwe dane osobowe (PESEL, IBAN). Chroń dostęp do tej skrzynki pocztowej.
+              </div>
+
+              <div class="section-title">Dane firmy</div>
+              <div class="data-row"><span class="label">Nazwa:</span> <span class="value">${escapeHtml(data.companyName)}</span></div>
+              <div class="data-row"><span class="label">NIP:</span> <span class="value">${escapeHtml(data.nip)}</span></div>
+              <div class="data-row"><span class="label">Forma prawna:</span> <span class="value">${escapeHtml(legalFormDisplay)}</span></div>
+              ${data.ownerPesel ? `<div class="data-row"><span class="label">PESEL Właściciela:</span> <span class="value">${escapeHtml(data.ownerPesel)}</span></div>` : ''}
+              ${data.representation ? `<div class="data-row"><span class="label">Reprezentacja:</span> <span class="value">${escapeHtml(data.representation)}</span></div>` : ''}
+              ${partnersHtml}
+
+              <div class="section-title">Adresy</div>
+              <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">Siedziba</div>
+                <div style="color: #334155;">${escapeHtml(data.seat.address)}</div>
+                <div style="color: #334155;">${escapeHtml(data.seat.postalCode)} ${escapeHtml(data.seat.city)}</div>
+              </div>
+              <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">Korespondencja</div>
+                <div style="color: #334155;">${escapeHtml(data.correspondence.address)}</div>
+                <div style="color: #334155;">${escapeHtml(data.correspondence.postalCode)} ${escapeHtml(data.correspondence.city)}</div>
+              </div>
+
+              <div class="section-title">Szczegóły operacyjne</div>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="50%" valign="top" style="padding-right: 10px;">
+                    <div class="data-row"><span class="label">Email:</span> <br><a href="mailto:${escapeHtml(data.contact.email)}" class="value">${escapeHtml(data.contact.email)}</a></div>
+                    <div class="data-row"><span class="label">Telefon:</span> <br><span class="value">${escapeHtml(data.contact.phone)}</span></div>
+                  </td>
+                  <td width="50%" valign="top" style="padding-left: 10px; border-left: 1px solid #e2e8f0;">
+                    <div class="data-row"><span class="label">Flota:</span> <br><span class="value">${data.fleet.size} pojazdów (${escapeHtml(fleetTypeDisplay)})</span></div>
+                    <div class="data-row"><span class="label">Kraje zwrotu:</span> <br><span class="value">${data.countries.map(c => escapeHtml(c)).join(', ')}</span></div>
+                  </td>
+                </tr>
+              </table>
+
+              <div class="section-title">Dane finansowe</div>
+              <div class="data-row">
+                <span class="label">Numer IBAN:</span>
+                <div style="margin-top: 5px;">${ibanDisplay}</div>
+              </div>
+            </div>
+
+            <div class="footer">
+              Zgłoszenie wygenerowane automatycznie: ${new Date(data.submittedAt).toLocaleString('pl-PL')}<br>
+              &copy; 2025 Fox Up Sp. z o.o.
+            </div>
+          </div>
+        </body>
+        </html>
       `,
     };
 
