@@ -292,8 +292,9 @@ export default function App() {
     }
   };
 
+  // --- ZMODYFIKOWANA FUNKCJA Z AUTO-RETRY ---
   const handleFetchGUS = async () => {
-    // 1. Walidacja formatu i sumy kontrolnej PRZED wysłaniem żądania
+    // 1. Walidacja formatu i sumy kontrolnej
     if (formData.nip.length !== 10) {
       setErrors(prev => ({ ...prev, nip: 'NIP musi składać się z 10 cyfr' }));
       return false;
@@ -303,32 +304,57 @@ export default function App() {
       return false;
     }
 
+    // 2. Czyścimy błędy i włączamy loader
     setErrors(prev => { const e = { ...prev }; delete e.nip; delete e.companyName; return e; });
     setLoading(true);
 
-    try {
-      const response = await fetch('/.netlify/functions/gus-lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nip: formData.nip })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Błąd pobierania danych');
+    let attempts = 0;
+    const maxAttempts = 2; // Spróbujemy maksymalnie 2 razy
 
-      setFormData(prev => ({
-        ...prev,
-        companyName: data.companyName,
-        seatAddress: data.seatAddress,
-        seatPostal: data.seatPostal,
-        seatCity: data.seatCity,
-      }));
-      return true;
-    } catch (err) {
-      setErrors(prev => ({ ...prev, nip: err.message || 'Nie udało się pobrać danych firmy' }));
-      return false;
-    } finally {
-      setLoading(false);
+    while (attempts < maxAttempts) {
+      try {
+        const response = await fetch('/.netlify/functions/gus-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nip: formData.nip })
+        });
+
+        // Jeśli serwer zwróci błąd 5xx (np. GUS padł), rzucamy błąd, żeby wejść w catch i ponowić
+        if (response.status >= 500) {
+           throw new Error('Server Error');
+        }
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+           // Inny błąd (np. 404), nie ma sensu ponawiać
+           throw new Error(data.error || 'Błąd pobierania danych');
+        }
+
+        // SUKCES!
+        setFormData(prev => ({
+          ...prev,
+          companyName: data.companyName,
+          seatAddress: data.seatAddress,
+          seatPostal: data.seatPostal,
+          seatCity: data.seatCity,
+        }));
+        setLoading(false);
+        return true;
+
+      } catch (err) {
+        attempts++;
+        // Jeśli to była ostatnia próba, wyświetlamy błąd
+        if (attempts >= maxAttempts) {
+           setErrors(prev => ({ ...prev, nip: err.message === 'Server Error' ? 'Serwer GUS nie odpowiada, spróbuj później' : (err.message || 'Nie udało się pobrać danych firmy') }));
+           setLoading(false);
+           return false;
+        }
+        // Jeśli mamy jeszcze próby, czekamy 500ms i pętla leci dalej
+        await new Promise(r => setTimeout(r, 500));
+      }
     }
+    return false;
   };
 
   const handleSkipIban = () => {
@@ -349,7 +375,6 @@ export default function App() {
       }
     }
     if (currentStep === 2) {
-      // Walidacja NIP jest wstępnie robiona przy strzale do API, ale tutaj też zabezpieczamy
       if (formData.nip.length !== 10) { 
         newErrors.nip = 'NIP musi składać się z 10 cyfr'; 
         isValid = false; 
@@ -358,7 +383,6 @@ export default function App() {
         isValid = false; 
       }
       
-      // ZMIANA: Usunięto komunikat "Kliknij pomarańczową strzałkę".
       if (!formData.companyName) { 
         isValid = false; 
       }
@@ -398,14 +422,10 @@ export default function App() {
         const success = await handleFetchGUS();
         
         if (success) {
-          // FIX: Skoro pobieranie się udało, idziemy od razu dalej.
-          // Pomijamy validateStep(), bo stan Reacta jeszcze się nie odświeżył 
-          // i walidator "myślałby", że pola firmy są nadal puste.
           setStep(p => p + 1);
           return;
         } else {
-          // Jeśli pobieranie się nie udało, handleFetchGUS ustawiło już błędy.
-          // Zostajemy w tym kroku.
+          // Zostajemy w tym kroku, błędy ustawiło handleFetchGUS
           return; 
         }
       }
@@ -562,7 +582,6 @@ export default function App() {
                           <div className="p-6"><h3 className="font-bold text-[#01152F] text-lg mb-1 font-heading">{formData.companyName}</h3><p className="text-slate-500 font-body">{formData.seatAddress}, {formData.seatPostal} {formData.seatCity}</p></div>
                         </div>
                       )}
-                      {/* ZMIANA: Usunięto tekst zachęty do kliknięcia */}
                       {errors.companyName && <p className="text-red-500 font-bold mt-4 font-body">{errors.companyName}</p>}
                     </div>
                   </StepWrapper>
