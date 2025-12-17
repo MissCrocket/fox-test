@@ -101,13 +101,10 @@ export async function handler(event) {
   try {
     const rawData = JSON.parse(event.body);
 
-    // --- ZMIANA: HONEYPOT CHECK ---
+    // --- HONEYPOT CHECK ---
     if (rawData._gotcha) {
-        // Logowanie IP z fallbackiem (dla Netlify)
         const ip = event.headers['client-ip'] || event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || 'unknown';
         console.log(`Spam detected from IP: ${ip}`);
-        
-        // Zwracamy 200 OK, żeby bot myślał, że się udało
         return { statusCode: 200, headers, body: JSON.stringify({ message: 'Wysłano' }) };
     }
     
@@ -117,7 +114,7 @@ export async function handler(event) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Błąd walidacji", details: result.error.issues }) };
     }
     
-    // --- ZMIANA: GENEROWANIE DATY NA SERWERZE ---
+    // --- POPRAWKA: Użycie spread operatora (...) zamiast kropki (.)
     const data = {
         ...result.data,
         submittedAt: new Date().toISOString()

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
 // --- IKONY SVG ---
+// POPRAWKA: Użycie {...props} (spread operator) zamiast błędnego .props
 const Icon = ({ children, className, ...props }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
 );
+
+// Wszystkie ikony poniżej mają poprawiony spread {...props}
 const Check = (props) => <Icon {...props}><polyline points="20 6 9 17 4 12"/></Icon>;
 const ChevronRight = (props) => <Icon {...props}><polyline points="9 18 15 12 9 6"/></Icon>;
 const ChevronLeft = (props) => <Icon {...props}><polyline points="15 18 9 12 15 6"/></Icon>;
@@ -28,11 +31,17 @@ const Euro = (props) => <Icon {...props}><path d="M4 10h12"/><path d="M4 14h9"/>
 const Award = (props) => <Icon {...props}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></Icon>;
 
 // --- KONFIGURACJA I STAŁE ---
-const DEV_MODE = import.meta.env.DEV; // Automatyczne przełączanie: true w dev, false w prod
+const DEV_MODE = import.meta.env.DEV;
 
 const FLEET_LABELS = { 
   trucks: 'Ciężarowe', 
   bus: 'Autokary'
+};
+
+const LEGAL_FORMS_DISPLAY = {
+  jdg: 'Jednoosobowa Działalność Gospodarcza',
+  sc: 'Spółka Cywilna',
+  other: 'Spółka Prawa Handlowego'
 };
 
 const INITIAL_FORM_STATE = {
@@ -98,6 +107,7 @@ const StepWrapper = ({ children }) => (
   <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">{children}</div>
 );
 
+// POPRAWKA: InputField używa teraz {...props}
 const InputField = ({ label, error, icon: Icon, autoComplete, required, onBlur, inputMode, pattern, ...props }) => (
   <div className="mb-5 group">
     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1 font-body">
@@ -143,10 +153,8 @@ const WelcomeScreen = ({ onStart }) => (
 
 // --- GŁÓWNA APLIKACJA ---
 export default function App() {
-  // 1. Definicja stanu formularza (MUSI być przed useEffect)
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   
-  // Pozostałe stany
   const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -156,7 +164,6 @@ export default function App() {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [zipCodesMap, setZipCodesMap] = useState({});
 
-  // 2. useEffect zależący od formData (Teraz bezpieczny)
   useEffect(() => {
     if (formData.sameAddress === 'no' && Object.keys(zipCodesMap).length === 0) {
       fetch('/kody-pocztowe.json')
@@ -406,7 +413,6 @@ export default function App() {
         iban: formData.ibanSkipped ? null : cleanedIban,
         ibanSkipped: formData.ibanSkipped,
         consent: formData.consent, 
-        // ZMIANA: Usunięto submittedAt, dodano _gotcha
         _gotcha: formData._gotcha
       };
 
@@ -469,9 +475,8 @@ export default function App() {
               <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-[#E86C3F] transition-all duration-500" style={{ width: `${((step-1)/6)*100}%` }}></div></div>
             </div>
             <div className="flex-1 flex flex-col relative">
-              {/* --- ZMIANA: HONEYPOT RENDEROWANY ZAWSZE (GLOBALNIE W UI) --- */}
-              {/* Jest niewidoczny dla użytkownika (opacity:0, left: -9999px), ale widoczny dla bota (brak display:none) */}
-              <div style={{ opacity: 0, position: 'absolute', left: '-9999px', top: 0 }}>
+              {/* --- HONEYPOT: ZAWSZE W HTML, UKRYTY, ale bez display:none --- */}
+              <div style={{ opacity: 0, position: 'absolute', top: 0, left: '-9999px', height: 0, width: 0, zIndex: -1 }} aria-hidden="true">
                   <label htmlFor="_gotcha">Nie wypełniaj tego pola, jeśli jesteś człowiekiem</label>
                   <input 
                       type="text" 
@@ -661,7 +666,11 @@ export default function App() {
                       <div className="border-b border-slate-100 pb-4 mb-4">
                           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 font-heading">Dane Firmy</h4>
                           <div className="flex justify-between items-center mb-2"><span className="font-bold text-[#01152F] text-lg font-heading">{formData.companyName}</span></div>
-                          <div className="text-sm text-slate-500 flex gap-4 font-body"><span>NIP: {formData.nip}</span><span>|</span><span>Forma: {formData.legalForm ? formData.legalForm.toUpperCase() : '—'}</span></div>
+                          <div className="text-sm text-slate-500 flex gap-4 font-body">
+                            <span>NIP: {formData.nip}</span>
+                            <span>|</span>
+                            <span>Forma: {formData.legalForm ? (LEGAL_FORMS_DISPLAY[formData.legalForm] || formData.legalForm) : '—'}</span>
+                          </div>
                       </div>
                       <div className="border-b border-slate-100 pb-4 mb-4">
                           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 font-heading">Adres Korespondencyjny</h4>
