@@ -248,7 +248,7 @@ export async function handler(event) {
 
             <div class="footer">
               <p style="margin: 0;">Zgłoszenie otrzymano: ${new Date(data.submittedAt).toLocaleString('pl-PL')}</p>
-              <p style="margin: 5px 0 0 0;">&copy; 2025 Fox Up Sp. z o.o.</p>
+              <p style="margin: 5px 0 0 0;">&copy; 2025 Fox up sp. z o.o.</p>
             </div>
           </div>
         </body>
