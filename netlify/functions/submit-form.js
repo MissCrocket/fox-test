@@ -136,7 +136,7 @@ export async function handler(event) {
     // Wspólnicy (dla SC)
     const partnersHtml = data.partners && data.partners.length > 0
       ? `
-        <div style="margin-top: 10px; background-color: #f8fafc; padding: 15px; border-radius: 6px;">
+        <div style="margin-top: 10px; background-color: #f8fafc; padding: 12px; border-radius: 6px;">
           <strong style="color: #64748b; font-size: 13px;">Wspólnicy:</strong>
           <ul style="margin: 5px 0 0 0; padding-left: 20px; color: #334155; font-size: 14px;">
             ${data.partners.map(p => `<li>${escapeHtml(p.name)} (PESEL: <strong>${escapeHtml(p.pesel)}</strong>)</li>`).join('')}
@@ -145,20 +145,20 @@ export async function handler(event) {
       `
       : '';
 
-    // Stylizacja IBAN
+    // Stylizacja IBAN - zmieniona czcionka na systemową, usunięto monospace
     const ibanDisplay = data.ibanSkipped 
       ? '<span style="color: #d97706; font-weight: bold; background: #fffbeb; padding: 4px 8px; border-radius: 4px; font-size: 12px;">⚠️ Do uzupełnienia później</span>' 
-      : (data.iban ? `<span style="font-family: monospace; font-size: 16px; font-weight: 600; color: #0f172a; letter-spacing: 1px;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');
+      : (data.iban ? `<span style="font-size: 16px; font-weight: 700; color: #0f172a; letter-spacing: 1px;">${escapeHtml(data.iban)}</span>` : '<span style="color:red">Brak</span>');
 
     // --- KONFIGURACJA SZABLONU ---
 
     const logoUrl = 'https://static.wixstatic.com/media/3912d2_cef00b6eb96343d586909632d2e7d630~mv2.png';
 
-    // Style CSS inline dla tabeli i komórek (dla maksymalnej kompatybilności z klientami poczty)
+    // Style CSS inline - zmniejszone paddingi i marginesy
     const tableRowStyle = 'border-bottom: 1px solid #f1f5f9;';
-    const labelCellStyle = 'padding: 12px 10px 12px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 140px; vertical-align: top; text-transform: uppercase; letter-spacing: 0.5px;';
-    const valueCellStyle = 'padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 500; vertical-align: top; line-height: 1.6;';
-    const sectionHeaderStyle = 'color: #E86C3F; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 35px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #E86C3F; display: inline-block;';
+    const labelCellStyle = 'padding: 8px 10px 8px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 140px; vertical-align: top; text-transform: uppercase; letter-spacing: 0.5px;';
+    const valueCellStyle = 'padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 500; vertical-align: top; line-height: 1.5;';
+    const sectionHeaderStyle = 'color: #E86C3F; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 25px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #E86C3F; display: inline-block;';
 
     const mailOptions = {
       from: `"Formularz Fox Up" <${process.env.SMTP_USER}>`,
@@ -174,10 +174,10 @@ export async function handler(event) {
           <style>
             body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #F3F6F8; -webkit-font-smoothing: antialiased; }
             .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-            .header { background-color: #01152F; padding: 30px; text-align: center; }
-            .content { padding: 40px; }
+            .header { background-color: #01152F; padding: 25px; text-align: center; }
+            .content { padding: 30px 40px; }
             .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
-            .alert { background-color: #fff7ed; border: 1px solid #ffedd5; color: #9a3412; padding: 12px 16px; border-radius: 6px; font-size: 13px; margin-bottom: 30px; display: flex; align-items: center; }
+            .alert { background-color: #fff7ed; border: 1px solid #ffedd5; color: #9a3412; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; }
             a { color: #E86C3F; text-decoration: none; font-weight: 600; }
             
             /* Reset tabeli dla maili */
@@ -188,11 +188,11 @@ export async function handler(event) {
         <body>
           <div class="container">
             <div class="header">
-               <img src="${logoUrl}" alt="FOX UP" width="120" style="display: block; margin: 0 auto; width: 120px; height: auto; border: 0;">
+               <img src="${logoUrl}" alt="FOX UP" width="110" style="display: block; margin: 0 auto; width: 110px; height: auto; border: 0;">
             </div>
 
             <div class="content">
-              <h2 style="margin: 0 0 25px 0; color: #01152F; font-size: 24px; font-weight: 700; text-align: center; letter-spacing: -0.5px;">Nowe zgłoszenie</h2>
+              <h2 style="margin: 0 0 20px 0; color: #01152F; font-size: 22px; font-weight: 700; text-align: center; letter-spacing: -0.5px;">Nowe zgłoszenie</h2>
               
               <div class="alert">
                 <span>🔒 <strong>Dane wrażliwe:</strong> Wiadomość zawiera PESEL/IBAN. Chroń ten e-mail.</span>
@@ -230,7 +230,12 @@ export async function handler(event) {
               <div style="${sectionHeaderStyle}">Szczegóły operacyjne</div>
               <table>
                 <tr style="${tableRowStyle}"><td style="${labelCellStyle}">Kontakt</td><td style="${valueCellStyle}"><a href="mailto:${escapeHtml(data.contact.email)}">${escapeHtml(data.contact.email)}</a><br>${escapeHtml(data.contact.phone)}</td></tr>
-                <tr style="${tableRowStyle}"><td style="${labelCellStyle}">Flota</td><td style="${valueCellStyle}">${data.fleet.size} pojazdów<br><span style="color:#64748b; font-size:13px;">(${escapeHtml(fleetTypeDisplay)})</span></td></tr>
+                <tr style="${tableRowStyle}">
+                  <td style="${labelCellStyle}">Flota</td>
+                  <td style="${valueCellStyle}">
+                    ${data.fleet.size} <span style="color:#64748b; font-weight:normal;">(${escapeHtml(fleetTypeDisplay)})</span>
+                  </td>
+                </tr>
                 <tr style="${tableRowStyle}"><td style="${labelCellStyle}">Kraje zwrotu</td><td style="${valueCellStyle}">${data.countries.map(c => escapeHtml(c)).join(', ')}</td></tr>
               </table>
 
