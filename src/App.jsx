@@ -296,8 +296,12 @@ export default function App() {
   };
 
   const handleFetchGUS = async () => {
+    if (formData.nip.length !== 10) {
+      setErrors(prev => ({ ...prev, nip: 'NIP musi mieć 10 cyfr' }));
+      return false;
+    }
     if (!isValidNIP(formData.nip)) {
-      setErrors(prev => ({ ...prev, nip: 'Sprawdź format NIP (10 cyfr)' }));
+      setErrors(prev => ({ ...prev, nip: 'Nieprawidłowy numer NIP' }));
       return false;
     }
     setErrors(prev => { const e = { ...prev }; delete e.nip; delete e.companyName; return e; });
@@ -346,8 +350,9 @@ export default function App() {
       }
     }
     if (currentStep === 2) {
-      if (!isValidNIP(formData.nip)) { newErrors.nip = 'Nieprawidłowy NIP'; isValid = false; }
-      if (!formData.companyName) { newErrors.companyName = 'Wymagane pobranie danych firmy'; isValid = false; }
+      if (formData.nip.length !== 10) { newErrors.nip = 'NIP musi składać się z 10 cyfr'; isValid = false; }
+      else if (!isValidNIP(formData.nip)) { newErrors.nip = 'Numer NIP jest nieprawidłowy'; isValid = false; }
+      if (!formData.companyName) { newErrors.companyName = 'Kliknij pomarańczową strzałkę, aby pobrać dane firmy'; isValid = false; }
     }
     if (currentStep === 3) {
       if (!formData.legalForm) { newErrors.legalForm = 'Wybierz formę prawną'; isValid = false; }
